@@ -1,0 +1,10 @@
+# rodham - Rodham XMPP Bot
+#
+# Rodham is a pluggable XMPP bot for fun and pleasure
+
+description	"Rodham XMPP Bot"
+
+start on filesystem or runlevel [2345]
+stop on runlevel [!2345]
+
+exec /usr/local/bin/rodham -c /etc/rodham/rodham.conf

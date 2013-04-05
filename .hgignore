@@ -1,0 +1,4 @@
+syntax: glob
+
+Rodham.egg-info/*
+*/*pyc
