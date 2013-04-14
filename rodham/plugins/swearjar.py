@@ -61,6 +61,10 @@ class SwearJarPlugin(object):
                 SwearWord(word=word, cost=float(cost)).save()
                 M.reply("Saved!").send()
                 self.update_words()
+            elif action == "modify":
+                pass
+            elif action == "delete":
+                pass
             elif action == "list":
                 words = list()
                 for (word, cost) in self.swear_words.sorteditems():
@@ -78,11 +82,14 @@ class SwearJarPlugin(object):
                         leaders[swear.who] = 0.0
                     leaders[swear.who] += swear.cost
                 M.reply("\n".join([ "{}: ${:,.2f}".format(k,v) for (k,v) in leaders.sorteditems() ])).send()
+            else:
+                M.reply("Not yet implemented...").send()
             return
 
         owed = 0.0
         for (word,cost) in self.swear_words.sorteditems():
-            r = re.compile(r"(%s)" % word, flags=re.I)
+            pattern = re.sub(r"\b", r"\\b", word)
+            r = re.compile(r"(%s)" % pattern, flags=re.I)
             words = r.findall(M["body"])
             owed += cost * len(words)
             if len(words) > 0:
