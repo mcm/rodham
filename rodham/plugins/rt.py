@@ -43,12 +43,18 @@ class RtPlugin(object):
                 return None
 
             info = dict()
+            lastkey = ""
             for line in lines:
-                line = line.strip()
+                line = line.rstrip()
                 if line == "":
                     continue
-                (key, value) = line.split(":", 1)
-                info[key.lower()] = value.strip()
+                try:
+                    (key, value) = line.split(":", 1)
+                except ValueError:
+                    info[lastkey] += line
+                else:
+                    info[key.lower()] = value.strip()
+                    lastkey = key.lower()
             info["id"] = info["id"].split("/")[1]
             info["link"] = "https://rt.hurricanedefense.com/Ticket/Display.html?id=%s" % info["id"]
             return info
