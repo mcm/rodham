@@ -4,6 +4,18 @@ import copy
 import re
 import sleekxmpp
 
+from sleekxmpp.stanza.message import Message
+from sleekxmpp.xmlstream import ElementBase
+from sleekxmpp.xmlstream import register_stanza_plugin
+
+class MediatedInvite(ElementBase):
+    name = 'x'
+    namespace = 'http://jabber.org/protocol/muc#user'
+    plugin_attrib = "password"
+    is_extension = True
+    interfaces = ("password",)
+    sub_interfaces = ("password",)
+
 class Rodham(sleekxmpp.ClientXMPP):
     def __init__(self, conf, *args, **kwargs):
         self.conf = conf
@@ -15,6 +27,13 @@ class Rodham(sleekxmpp.ClientXMPP):
         self.add_event_handler("message", self.message_received)
 
         self.register_plugin('xep_0045')
+        #self.register_plugin('xep_0249')
+
+        register_stanza_plugin(Message, MediatedInvite)
+
+    @property
+    def jid_resource(self):
+        return self.conf["server"]["jid"].split("/")[-1]
 
     def run(self):
         if self.conf["server"].has_key("hostname"):
@@ -40,12 +59,39 @@ class Rodham(sleekxmpp.ClientXMPP):
             #print "Joining %s" % room
             if not roomconf.has_key("password"):
                 roomconf["password"] = ""
-            jid = "%s@%s" % (room, roomconf["server"])
-            self.plugin["xep_0045"].joinMUC(jid, roomconf["nick"], password=roomconf["password"])
-            self.add_event_handler("muc::%s::got_online" % jid, self.muc_online)
-            self.add_event_handler("muc::%s::got_offline" % jid, self.muc_offline)
+            self.join_room(room, roomconf["server"], roomconf["nick"], roomconf["password"])
+
+        self.add_event_handler("groupchat_invite", self.groupchat_invite)
 
         self._plugin_manager = plugins.PluginManager(self.conf["plugins"], bot=self)
+
+    def groupchat_invite(self, inv):
+        (room, server) = str(inv["from"]).split("@")
+        if not room in self.conf["rooms"]:
+            roomconf = {
+                "password": inv["password"],
+                "server": server,
+                "nick": self.jid_resource
+            }
+            self.conf["rooms"][room] = roomconf
+        else:
+            roomconf = self.conf["rooms"][room]
+        self.join_room(room, roomconf["server"], roomconf["nick"], roomconf["password"])
+
+    def join_room(self, room, server, nick, password):
+        jid = "%s@%s" % (room, server)
+        self.plugin["xep_0045"].joinMUC(jid, nick, password=password)
+        self.add_event_handler("muc::%s::got_online" % jid, self.muc_online)
+        self.add_event_handler("muc::%s::got_offline" % jid, self.muc_offline)
+
+    def leave_room(self, room, server):
+        jid = "%s@%s" % (room, server)
+        self.add_event_handler("muc::%s::got_offline" % jid, self.muc_offline)
+        self.add_event_handler("muc::%s::got_online" % jid, self.muc_online)
+        try:
+            self.plugin["xep_0045"].leaveMUC(room, self.conf["rooms"][room]["nick"])
+        except KeyError:
+            pass
 
     def message_received(self, M):
         if M["type"] == "groupchat":
@@ -103,6 +149,9 @@ class Rodham(sleekxmpp.ClientXMPP):
             # Fall back to their muc nick
             user = presence["muc"]["nick"]
         if presence["muc"]["nick"] == roomconf["nick"]:
+            # Kicked
+            self.leave_room(room, roomconf["server"])
+            self.join_room(room, roomconf["server"], roomconf["nick"], roomconf["password"])
             return
 
         monitor_report = roomconf.get("monitor_report", None)
@@ -113,3 +162,6 @@ class Rodham(sleekxmpp.ClientXMPP):
             self.make_muc_message(mto=mto, mbody="Notice: %s left %s" % (user, room)).send()
         else:
             self.make_message(mto=mto, mbody="Notice: %s left %s" % (user, room)).send()
+
+    def get_plugin(self, plugin_name):
+        return self._plugin_manager.plugins[plugin_name][0]

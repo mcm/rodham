@@ -59,7 +59,7 @@ class RtPlugin(object):
             info["link"] = "https://rt.hurricanedefense.com/Ticket/Display.html?id=%s" % info["id"]
             return info
 
-        m = re.match("!rt (take|give \w+|open|close|admin_users) hd\s*#\s*(\d+)", M["body"], flags=re.I)
+        m = re.match("!rt (take|give \w+|open|close|resolve|admin_users) hd\s*#\s*(\d+)", M["body"], flags=re.I)
         if m:
             (action, ticket) = m.groups()
             info = get_ticket_info(ticket)
@@ -67,18 +67,20 @@ class RtPlugin(object):
                 M.reply("Ticket %s does not exist." % ticket).send()
                 return
 
+            action = action.lower()
+
             if action == "open":
                 if (info["status"] != "new" and info["owner"] != sender) and sender not in self.admins:
                     M.reply("%s: Unable to open ticket: status is %s and you are not the owner" % (sender, info["status"])).send()
                     return
                 open_ticket(ticket)
-            elif action == "close":
+            elif action == "close" or action == "resolve":
                 if info["owner"] != sender and sender not in self.admins:
                     M.reply("%s: Unable to close ticket: you are not the owner" % sender).send()
                     return
                 close_ticket(ticket)
             elif action == "take":
-                if (info["owner"] != "nobody" and info["owner"] != "stuart") and sender not in self.admins:
+                if (info["owner"].lower() != "nobody" and info["owner"] != "stuart") and sender not in self.admins:
                     M.reply("%s: Unable to take ticket: ticket is owned by %s" % (sender, info["owner"])).send()
                     return
                 elif info["owner"] != "stuart":

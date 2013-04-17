@@ -18,6 +18,10 @@ def NagzillaProtocolFactory(bot):
 
         def handle_line(self, line):
             (style, target, msg) = line.split("^", 2)
+            try:
+                (msg, color) = msg.split("^", 1)
+            except ValueError:
+                color = None
 
             if style.lower() == "room":
                 # MUC
@@ -25,6 +29,8 @@ def NagzillaProtocolFactory(bot):
             else:
                 # DM
                 M = self.bot.make_message(mto=target, mbody=msg)
+            if color is not None:
+                M["html"]["body"] = """<html xmlns="http://jabber.org/protocol/xhtml-im"><body xmlns="http://www.w3.org/1999/xhtml"><span style="color: %s">%s</span></body></html>""" % (color, msg)
             M.send()
             M["from"], M["to"] = M["to"], M["from"]
             self.bot.message_received(M)
