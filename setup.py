@@ -22,6 +22,9 @@ setup(
         "requests",
         "sleekxmpp",
     ],
+    dependency_links=[
+        "svn+https://pyst.svn.sourceforge.net/svnroot/pyst/pyst/trunk#egg=pyst",
+    ],
     entry_points={
         'console_scripts': [
             'rodham = rodham.daemon:main',
