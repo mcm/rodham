@@ -23,7 +23,7 @@ setup(
         "sleekxmpp",
     ],
     dependency_links=[
-        "svn+https://pyst.svn.sourceforge.net/svnroot/pyst/pyst/trunk#egg=pyst",
+        "svn+https://pyst.svn.sourceforge.net/svnroot/pyst/pyst/trunk#egg=pyst-0.4.38",
     ],
     entry_points={
         'console_scripts': [
