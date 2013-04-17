@@ -15,8 +15,11 @@ setup(
         "configobj",
         "dnspython",
         "mechanize",
+        "peewee",
+        "pyst",
         "python-daemon==1.4.5",
         "python-ldap",
+        "requests",
         "sleekxmpp",
     ],
     entry_points={
