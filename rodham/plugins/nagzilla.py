@@ -40,7 +40,7 @@ def NagzillaProtocolFactory(bot):
 
 
 class NagzillaPlugin(object):
-    def __init__(self, conf, bot):
+    def __init__(self, conf, bot, *args, **kwargs):
         self.conf = conf
         addr = self.conf["bind_address"]
         port = int(self.conf.get("bind_port", 49776))

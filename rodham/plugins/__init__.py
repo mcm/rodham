@@ -1,5 +1,7 @@
 from importlib import import_module
 
+from .. import signals
+
 import copy
 import inspect
 
@@ -24,6 +26,9 @@ class PluginManager(object):
         self.conf = conf
         self.collect_plugins()
 
+    def debug_message(self, *args, **kwargs):
+        return self.bot.debug_message(*args, **kwargs)
+
     def collect_plugins(self):
         self.plugins = dict()
         for (plugin, pluginconf) in self.conf.items():
@@ -35,11 +40,7 @@ class PluginManager(object):
                     try:
                         o = cls(conf=pluginconf, bot=self.bot)
                     except TypeError:
-                        #import traceback
-                        #f = self.bot.make_muc_message(mto="roddydev", mbody=traceback.format_exc())
-                        #f.send()
                         o = cls()
-                    #self.bot.send_message(mto="roddydev@conference.chat.hurricanedefense.com", mbody="%s loaded" % plugin, mtype="groupchat")
                     self.plugins[plugin] = (o, pluginconf)
 
     def reload(self):
@@ -56,6 +57,8 @@ class PluginManager(object):
             sender = M.get_from().user
         for plugin in self.plugins.keys():
             (p, conf) = self.plugins[plugin]
+            if getattr(p, "disabled", False):
+                continue
             if conf.has_key("whitelist") and sender not in conf["whitelist"]:
                 continue
             if conf.has_key("blacklist") and sender in conf["blacklist"]:
@@ -64,11 +67,12 @@ class PluginManager(object):
             if callable(f):
                 try:
                     f(copy.copy(M))
+                except signals.ReloadSignal:
+                    raise signals.ReloadSignal()
                 except:
                     # Dump the last line of traceback somewhere, maybe?
                     import traceback
-                    f = self.bot.make_muc_message(mto="roddydev", mbody=traceback.format_exc())
-                    f.send()
+                    self.debug_message(traceback.format_exc())
 
     def call_on_plugin(self, plugin, method, M):
         if self.plugins.has_key(plugin):
@@ -77,10 +81,11 @@ class PluginManager(object):
             if callable(f):
                 try:
                     f(copy.copy(M))
+                except signals.ReloadSignal:
+                    raise signals.ReloadSignal()
                 except:
                     # Dump the last line of traceback somewhere, maybe?
                     import traceback
-                    f = self.bot.make_muc_message(mto="roddydev", mbody=traceback.format_exc())
-                    f.send()
+                    self.debug_message(traceback.format_exc())
                 return True
         return False

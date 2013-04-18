@@ -21,6 +21,7 @@ class PhonePlugin(object):
         if not m:
             return
 
+        #TODO: ACL this
         if M["type"] == "groupchat":
             sender = M.get_from().resource
         else:
@@ -106,11 +107,24 @@ class PhonePlugin(object):
             except TypeError:
                 name = number = None
 
+            if where is None:
+                where = "office"
+
             if number is None:
                 M.reply("That request does not compute - do better").send()
                 return
 
-            number = re.sub("[^\d]", "", number)
+            m = re.search("(.+?) x(\d+)", number)
+            if m:
+                (realnumber, extension) = m.groups()
+                realnumber = re.sub("[^\d]", "", realnumber)
+                if realnumber == "2169231330":
+                    where = "desk"
+                    number = extension
+                else:
+                    number = realnumber
+            else:
+                number = re.sub("[^\d]", "", number)
 
             ext = ldap_plugin.get_extension_by_user(sender)
             if ext is None:

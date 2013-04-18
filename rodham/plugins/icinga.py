@@ -1,3 +1,6 @@
+import copy
+import datetime
+import pymongo
 import re
 import socket
 import time
@@ -12,6 +15,7 @@ class IcingaPlugin(object):
         self.port = int(conf.get("port", 5668))
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.client.connect((self.hostname, self.port))
+        self.mongo = pymongo.Connection(conf["mongo_server"]).icinga
 
     def proc(self, M):
         m = re.match("^!icinga", M["body"], flags=re.I)
@@ -61,6 +65,42 @@ class IcingaPlugin(object):
             else:
                 recheck_service(host, service)
             return
+
+        m = re.match("^!icinga info (\S+)(?:$| (\S+))", M["body"], flags=re.I)
+        if m:
+            host = m.groups()[0]
+            ho = self.mongo["objects"].find_one({"blocktype": "host", "host_name": host})
+            hs = self.mongo["status"].find_one({"blocktype": "hoststatus", "host_name": host})
+            if ho is None or hs is None:
+                M.reply("Host not found: %s" % host).send()
+                return
+
+            copy.copy(M).reply("Host Description: %s" % ho["alias"]).send()
+            copy.copy(M).reply("Host Address: %s" % ho["address"]).send()
+            if ho.has_key("_MANAGEMENT_IP"):
+                copy.copy(M).reply("Management IP: %s" % ho["_MANAGEMENT_IP"]).send()
+            state = "UP" if int(hs["current_state"]) == 0 else "DOWN"
+            lastupdate = datetime.datetime.fromtimestamp(int(hs["last_check"])).isoformat()
+            copy.copy(M).reply("Host Status: %s (as of %s)" % (state, lastupdate)).send()
+
+            service = m.groups()[1]
+            if service is not None:
+                so = self.mongo["objects"].find_one({"blocktype": "service", "host_name": host, "service_description": service})
+                ss = self.mongo["status"].find_one({"blocktype": "servicestatus", "host_name": host, "service_description": service})
+
+                if so is None or ss is None:
+                    M.reply("Service not found: %s" % service).send()
+                    return
+
+                copy.copy(M).reply("Service Description: %s" % so["display_name"]).send()
+                state = {
+                    0: "OK",
+                    1: "WARNING",
+                    2: "CRITICAL",
+                    3: "UNKNOWN",
+                }[int(ss["current_state"])]
+                lastupdate = datetime.datetime.fromtimestamp(int(ss["last_check"])).isoformat()
+                copy.copy(M).reply("Service Status: %s (last check was %s)" % (state, lastupdate)).send()
 
         #m = re.match("^!icinga (ack) (?:\[URGENT\] )?Host ([^\s]+) is DOWN", M["body"], flags=re.I)
 

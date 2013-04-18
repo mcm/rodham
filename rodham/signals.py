@@ -1,0 +1,1 @@
+class ReloadSignal(Exception): pass

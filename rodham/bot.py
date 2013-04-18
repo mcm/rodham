@@ -1,4 +1,5 @@
 from . import plugins
+from . import signals
 
 import copy
 import re
@@ -45,10 +46,18 @@ class Rodham(sleekxmpp.ClientXMPP):
 
     def make_muc_message(self, *args, **kwargs):
         mto = kwargs.pop("mto")
-        server = self.conf["rooms"][mto]["server"]
+        try:
+            server = self.conf["rooms"][mto]["server"]
+        except KeyError:
+            server = "conference.chat.hurricanedefense.com"
         kwargs["mto"] = "%s@%s" % (mto, server)
         kwargs["mtype"] = "groupchat"
         return self.make_message(*args, **kwargs)
+
+    def debug_message(self, message):
+        for (room,roomconf) in self.conf["rooms"].items():
+            if roomconf.get("debugging", False):
+                self.make_muc_message(mto=room, mbody=message).send()
 
     def session_start(self, event):
         self.send_presence()
@@ -59,7 +68,7 @@ class Rodham(sleekxmpp.ClientXMPP):
             #print "Joining %s" % room
             if not roomconf.has_key("password"):
                 roomconf["password"] = ""
-            self.join_room(room, roomconf["server"], roomconf["nick"], roomconf["password"])
+            self.join_room(room, roomconf["server"], roomconf["password"])
 
         self.add_event_handler("groupchat_invite", self.groupchat_invite)
 
@@ -67,20 +76,20 @@ class Rodham(sleekxmpp.ClientXMPP):
 
     def groupchat_invite(self, inv):
         (room, server) = str(inv["from"]).split("@")
+        self.join_room(room, server, inv["password"])
+
+    def join_room(self, room, server, password):
         if not room in self.conf["rooms"]:
             roomconf = {
-                "password": inv["password"],
+                "password": password,
                 "server": server,
                 "nick": self.jid_resource
             }
             self.conf["rooms"][room] = roomconf
         else:
             roomconf = self.conf["rooms"][room]
-        self.join_room(room, roomconf["server"], roomconf["nick"], roomconf["password"])
-
-    def join_room(self, room, server, nick, password):
         jid = "%s@%s" % (room, server)
-        self.plugin["xep_0045"].joinMUC(jid, nick, password=password)
+        self.plugin["xep_0045"].joinMUC(jid, roomconf["nick"], password=password)
         self.add_event_handler("muc::%s::got_online" % jid, self.muc_online)
         self.add_event_handler("muc::%s::got_offline" % jid, self.muc_offline)
 
@@ -89,8 +98,8 @@ class Rodham(sleekxmpp.ClientXMPP):
         self.add_event_handler("muc::%s::got_offline" % jid, self.muc_offline)
         self.add_event_handler("muc::%s::got_online" % jid, self.muc_online)
         try:
-            self.plugin["xep_0045"].leaveMUC(room, self.conf["rooms"][room]["nick"])
-        except KeyError:
+            self.plugin["xep_0045"].leaveMUC(jid, self.conf["rooms"][room]["nick"])
+        except ValueError:
             pass
 
     def message_received(self, M):
@@ -120,7 +129,11 @@ class Rodham(sleekxmpp.ClientXMPP):
             plugin = m.groups()[0]
             if self._plugin_manager.call_on_plugin(plugin, "help", M):
                 return
-        self._plugin_manager.iter_plugins(M, method)
+        try:
+            self._plugin_manager.iter_plugins(M, method)
+        except signals.ReloadSignal:
+            self._plugin_manager.reload()
+            M.reply("Reload complete").send()
 
     def muc_online(self, presence):
         room = presence.get_from().user
@@ -151,7 +164,7 @@ class Rodham(sleekxmpp.ClientXMPP):
         if presence["muc"]["nick"] == roomconf["nick"]:
             # Kicked
             self.leave_room(room, roomconf["server"])
-            self.join_room(room, roomconf["server"], roomconf["nick"], roomconf["password"])
+            self.join_room(room, roomconf["server"], roomconf["password"])
             return
 
         monitor_report = roomconf.get("monitor_report", None)
