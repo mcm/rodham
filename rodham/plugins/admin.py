@@ -9,7 +9,7 @@ class AdminPlugin(object):
         self.admins = conf.get("admin_users", [])
 
     def proc(self, M):
-        m = re.match("^!admin (reload|hostname|version|leave|kick|showplugins|enable|disable|join)", M["body"], flags=re.I)
+        m = re.match("^!admin (blacklist add|blacklist remove|reload|hostname|version|leave|kick|showplugins|enable|disable|join)", M["body"], flags=re.I)
         if not m:
             return
 
@@ -85,3 +85,25 @@ class AdminPlugin(object):
                 M.reply("Disabled '%s' plugin" % plugin).send()
             else:
                 M.reply("'%s' plugin already disabled" % plugin).send()
+        elif cmd == "blacklist add":
+            m = re.match("^!admin blacklist add (\S+)", M["body"], flags=re.I)
+            if m is None:
+                return
+
+            badmonkey = m.groups()[0]
+            if badmonkey not in self.bot.conf["server"]["blacklist"]:
+                self.bot.conf["server"]["blacklist"].append(badmonkey)
+                M.reply("%s blacklisted" % badmonkey).send()
+            else:
+                M.reply("%s already blacklisted" % badmonkey).send()
+        elif cmd == "blacklist remove":
+            m = re.match("^!admin blacklist remove (\S+)", M["body"], flags=re.I)
+            if m is None:
+                return
+
+            goodmonkey = m.groups()[0]
+            if goodmonkey in self.bot.conf["server"]["blacklist"]:
+                self.bot.conf["server"]["blacklist"].remove(goodmonkey)
+                M.reply("%s removed from blacklist" % goodmonkey).send()
+            else:
+                M.reply("%s not blacklisted" % goodmonkey).send()
