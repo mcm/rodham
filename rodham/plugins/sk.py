@@ -7,7 +7,7 @@ import re
 
 class SkTitlePlugin(object):
     def proc(self, M):
-        m = re.search("(sk[0-9]+)", M["body"])
+        m = re.search("\b(sk[0-9]+)", M["body"])
         if m is None:
             return
 
