@@ -87,7 +87,7 @@ class SwearJarPlugin(object):
                     M.reply("Usage: !swearjar delete <word>").send()
                     return
                 word = m.groups()[0]
-                SwearWord.get(word=word).delete()
+                SwearWord.get(word=word).delete_instance()
                 M.reply("%s deleted" % word).send()
                 self.update_words()
             elif action == "list":
