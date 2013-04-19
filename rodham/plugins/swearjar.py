@@ -81,6 +81,11 @@ class SwearJarPlugin(object):
             elif action == "delete":
                 if not sender in self.admins:
                     return
+                m = re.match("^!swearjar delete ([\w\s]+?)$", M["body"], flags=re.I)
+                if not m:
+                    M.reply("Usage: !swearjar delete <word>").send()
+                    return
+                (word, cost) = m.groups()
                 SwearWord.get(word=word).delete()
                 M.reply("%s deleted" % word).send()
             elif action == "list":
