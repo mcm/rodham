@@ -50,6 +50,8 @@ class SwearJarPlugin(object):
             sender = M.get_from().resource
         else:
             sender = M.get_from().user
+        if sender == "":
+            return
         m = re.match("^!swearjar (add|modify|delete|list|total|leaders|reset)", M["body"], flags=re.I)
         if m:
             action = m.groups()[0].lower()
@@ -67,11 +69,20 @@ class SwearJarPlugin(object):
             elif action == "modify":
                 if not sender in self.admins:
                     return
-                pass
+                m = re.match("^!swearjar modify ([\w\s]+?) \$(\d+\.\d{2})$", M["body"], flags=re.I)
+                if not m:
+                    M.reply("Usage: !swearjar modify <word> $0.00").send()
+                    return
+                (word, cost) = m.groups()
+                swear_word = SwearWord.get(word=word)
+                swear_word.cost = float(cost)
+                swear_word.save()
+                M.reply("%s updated" % word).send()
             elif action == "delete":
                 if not sender in self.admins:
                     return
-                pass
+                SwearWord.get(word=word).delete()
+                M.reply("%s deleted" % word).send()
             elif action == "list":
                 words = list()
                 for (word, cost) in self.swear_words.sorteditems():
