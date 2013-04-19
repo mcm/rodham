@@ -40,6 +40,7 @@ class SwearJarPlugin(object):
         if not Swear.table_exists():        
             Swear.create_table()
         self.update_words()
+        self.admins = conf["admin_users"]
 
     def update_words(self):
         self.swear_words = CostSortedDict([(s.word,s.cost) for s in SwearWord.select()])
@@ -53,6 +54,8 @@ class SwearJarPlugin(object):
         if m:
             action = m.groups()[0].lower()
             if action == "add":
+                if not sender in self.admins:
+                    return
                 m = re.match("^!swearjar add ([\w\s]+?) \$(\d+\.\d{2})$", M["body"], flags=re.I)
                 if not m:
                     M.reply("Usage: !swearjar add <word> $0.00").send()
@@ -62,8 +65,12 @@ class SwearJarPlugin(object):
                 M.reply("Saved!").send()
                 self.update_words()
             elif action == "modify":
+                if not sender in self.admins:
+                    return
                 pass
             elif action == "delete":
+                if not sender in self.admins:
+                    return
                 pass
             elif action == "list":
                 words = list()
@@ -73,6 +80,8 @@ class SwearJarPlugin(object):
             elif action == "total":
                 M.reply("Swear jar total: %s" % get_swear_jar()).send()
             elif action == "reset":
+                if not sender in self.admins:
+                    return
                 Swear.delete().execute()
                 M.reply("Swear jar total: %s" % get_swear_jar()).send()
             elif action == "leaders":
