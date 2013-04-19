@@ -78,6 +78,7 @@ class SwearJarPlugin(object):
                 swear_word.cost = float(cost)
                 swear_word.save()
                 M.reply("%s updated" % word).send()
+                self.update_words()
             elif action == "delete":
                 if not sender in self.admins:
                     return
@@ -85,9 +86,10 @@ class SwearJarPlugin(object):
                 if not m:
                     M.reply("Usage: !swearjar delete <word>").send()
                     return
-                (word, cost) = m.groups()
+                word = m.groups()[0]
                 SwearWord.get(word=word).delete()
                 M.reply("%s deleted" % word).send()
+                self.update_words()
             elif action == "list":
                 words = list()
                 for (word, cost) in self.swear_words.sorteditems():
