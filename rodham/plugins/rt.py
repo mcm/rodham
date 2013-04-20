@@ -11,6 +11,7 @@ class RtPlugin(object):
         self.session = requests.Session()
         self.session.post(self.urlroot, data=self.auth_payload, verify=False)
         self.admins = conf.get("admin_users", [])
+        self.moratorium = map(int, conf.get("moratorium", []))
 
     def proc(self, M):
         sender = M.sender
@@ -103,6 +104,9 @@ class RtPlugin(object):
             ticket = m.groups()[0]
             info = get_ticket_info(ticket)
             if info:
-                M.reply("HD#%(id)s || Queue: %(queue)s || Status: %(status)s || %(subject)s || Owner: %(owner)s || %(link)s" % info).send()
+                if int(info["id"]) in self.moratorium:
+                    M.reply("MORATORIUM").send()
+                else:
+                    M.reply("HD#%(id)s || Queue: %(queue)s || Status: %(status)s || %(subject)s || Owner: %(owner)s || %(link)s" % info).send()
             else:
                 M.reply("Ticket %s does not exist." % ticket).send()
