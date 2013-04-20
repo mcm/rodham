@@ -8,6 +8,7 @@ import sleekxmpp
 from sleekxmpp.jid import JID
 from sleekxmpp.stanza.message import Message as BaseMessage
 from sleekxmpp.xmlstream import ElementBase
+from sleekxmpp.xmlstream import ET
 from sleekxmpp.xmlstream import register_stanza_plugin
 
 class MediatedInvite(ElementBase):
@@ -190,3 +191,24 @@ class Rodham(sleekxmpp.ClientXMPP):
 
     def get_plugin(self, plugin_name):
         return self._plugin_manager.plugins[plugin_name][0]
+
+    def kick(self, room, nick, reason=None):
+        print room
+        if not room in self.conf["rooms"]:
+            return
+        roomconf = self.conf["rooms"][room]
+        iq = self.makeIqSet()
+        iq["to"] = "%s@%s" % (room, roomconf["server"])
+        iq["from"] = str(self.jid)
+
+        query = ET.Element("{http://jabber.org/protocol/muc#admin}query")
+        item = ET.Element("{http://jabber.org/protocol/muc#admin}item")
+        item.set("nick", nick)
+        item.set("role", "none")
+        if reason:
+            xreason = ET.Element("{http://jabber.org/protocol/muc#admin}reason")
+            xreason.text = reason
+            item.append(xreason)
+        query.append(item)
+        iq.append(query)
+        iq.send()

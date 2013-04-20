@@ -44,16 +44,21 @@ class AdminPlugin(object):
                     return
                 self.bot.leave_room(room, server)
         elif cmd == "kick":
-            m = re.match("!admin kick (\S+)$", M["body"], flags=re.I)
+            m = re.match(r"!admin kick (?:(\S+) )?{(.+?)}(?:$| (.+)$)", M["body"], flags=re.I)
             if not m:
                 return
 
-            nick = self.bot.conf["rooms"][M.get_from().user]["nick"]
+            if m.groups()[0] is None:
+                room = M.get_from().user
+            else:
+                room = m.groups()[0]
 
-            room = "%s@%s" % (M.get_from().user, M.get_from().domain)
-            ifrom = self.bot.conf["server"]["jid"]
-            self.bot.plugin["xep_0045"].setAffiliation(room, nick=m.groups()[0], affiliation="none", ifrom=ifrom)
-            #M.reply("Not implemented").send()
+            if m.groups()[2] is None:
+                reason = "admin requested"
+            else:
+                reason = m.groups()[2]
+
+            self.bot.kick(room, m.groups()[1], reason=reason)
         elif cmd == "showplugins":
             for plugin in self.bot._plugin_manager.plugins.keys():
                 disabled = getattr(self.bot._plugin_manager.plugins[plugin][0], "disabled", False)
