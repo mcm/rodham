@@ -46,12 +46,11 @@ class SwearJarPlugin(object):
         self.swear_words = CostSortedDict([(s.word,s.cost) for s in SwearWord.select()])
 
     def proc(self, M):
-        if M["type"] == "groupchat":
-            sender = M.get_from().resource
-        else:
-            sender = M.get_from().user
+        sender = M.sender
+
         if sender == "":
             return
+
         m = re.match("^!swearjar (add|modify|delete|list|total|leaders|reset)", M["body"], flags=re.I)
         if m:
             action = m.groups()[0].lower()

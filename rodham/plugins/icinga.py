@@ -1,4 +1,3 @@
-import copy
 import datetime
 import pymongo
 import re
@@ -22,12 +21,7 @@ class IcingaPlugin(object):
         if not m:
             return
 
-        if M["type"] == "groupchat":
-            sender = M.get_from().resource
-        else:
-            sender = M.get_from().user
-        if sender == "mcbastard":
-            sender = "mcmaster"
+        sender = M.sender
 
         def ack_host(host, comment, silent = False):
             cmd = format_icinga_command("ACKNOWLEDGE_HOST_PROBLEM;%s;2;%s;0;%s;%s" % (host, int(not silent), sender, comment))
@@ -75,13 +69,13 @@ class IcingaPlugin(object):
                 M.reply("Host not found: %s" % host).send()
                 return
 
-            copy.copy(M).reply("Host Description: %s" % ho["alias"]).send()
-            copy.copy(M).reply("Host Address: %s" % ho["address"]).send()
+            M.reply("Host Description: %s" % ho["alias"]).send()
+            M.reply("Host Address: %s" % ho["address"]).send()
             if ho.has_key("_MANAGEMENT_IP"):
-                copy.copy(M).reply("Management IP: %s" % ho["_MANAGEMENT_IP"]).send()
+                M.reply("Management IP: %s" % ho["_MANAGEMENT_IP"]).send()
             state = "UP" if int(hs["current_state"]) == 0 else "DOWN"
             lastupdate = datetime.datetime.fromtimestamp(int(hs["last_check"])).isoformat()
-            copy.copy(M).reply("Host Status: %s (as of %s)" % (state, lastupdate)).send()
+            M.reply("Host Status: %s (as of %s)" % (state, lastupdate)).send()
 
             service = m.groups()[1]
             if service is not None:
@@ -92,7 +86,7 @@ class IcingaPlugin(object):
                     M.reply("Service not found: %s" % service).send()
                     return
 
-                copy.copy(M).reply("Service Description: %s" % so["display_name"]).send()
+                M.reply("Service Description: %s" % so["display_name"]).send()
                 state = {
                     0: "OK",
                     1: "WARNING",
@@ -100,7 +94,7 @@ class IcingaPlugin(object):
                     3: "UNKNOWN",
                 }[int(ss["current_state"])]
                 lastupdate = datetime.datetime.fromtimestamp(int(ss["last_check"])).isoformat()
-                copy.copy(M).reply("Service Status: %s (last check was %s)" % (state, lastupdate)).send()
+                M.reply("Service Status: %s (last check was %s)" % (state, lastupdate)).send()
 
         #m = re.match("^!icinga (ack) (?:\[URGENT\] )?Host ([^\s]+) is DOWN", M["body"], flags=re.I)
 

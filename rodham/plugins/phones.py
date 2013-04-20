@@ -1,5 +1,4 @@
 import asterisk.manager
-import copy
 import re
 import threading
 import uuid
@@ -21,13 +20,7 @@ class PhonePlugin(object):
         if not m:
             return
 
-        #TODO: ACL this
-        if M["type"] == "groupchat":
-            sender = M.get_from().resource
-        else:
-            sender = M.get_from().user
-        if sender == "mcbastard":
-            sender = "mcmaster"
+        sender = M.sender
 
         cmd = m.groups()[0].lower()
         if cmd == "open" or cmd == "close":
@@ -82,9 +75,9 @@ class PhonePlugin(object):
                     return
                 name = self.bot.get_plugin("ldap").get_user_by_extension(event.get_header("CallerIDnum"))
                 if name is None:
-                    copy.copy(M).reply(event.get_header("CallerIDnum")).send()
+                    M.reply(event.get_header("CallerIDnum")).send()
                 else:
-                    copy.copy(M).reply(name).send()
+                    M.reply(name).send()
             def handle_complete(event, manager, *args, **kwargs):
                 finished.set()
             self.ami.register_event("CoreShowChannel", handle_response)
@@ -95,6 +88,10 @@ class PhonePlugin(object):
             self.ami.unregister_event("CoreShowChannelsComplete", handle_complete)
             self.ami.unregister_event("CoreShowChannel", handle_response)
         elif cmd == "call":
+            #TODO Make this better?
+            if sender.count("@") > 0:
+                return
+
             m = re.match("!phones call ([a-zA-Z '-]{3,}?)(?:$| (mobile|office|home)$)", M["body"], flags=re.I)
             if not m:
                 return

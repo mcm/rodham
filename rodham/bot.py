@@ -5,7 +5,8 @@ import copy
 import re
 import sleekxmpp
 
-from sleekxmpp.stanza.message import Message
+from sleekxmpp.jid import JID
+from sleekxmpp.stanza.message import Message as BaseMessage
 from sleekxmpp.xmlstream import ElementBase
 from sleekxmpp.xmlstream import register_stanza_plugin
 
@@ -16,6 +17,13 @@ class MediatedInvite(ElementBase):
     is_extension = True
     interfaces = ("password",)
     sub_interfaces = ("password",)
+
+class Message(BaseMessage):
+    sender = None
+
+    def reply(self, *args, **kwargs):
+        M = copy.copy(self)
+        return BaseMessage.reply(M, *args, **kwargs)
 
 class Rodham(sleekxmpp.ClientXMPP):
     def __init__(self, conf, *args, **kwargs):
@@ -30,11 +38,11 @@ class Rodham(sleekxmpp.ClientXMPP):
         self.register_plugin('xep_0045')
         #self.register_plugin('xep_0249')
 
-        register_stanza_plugin(Message, MediatedInvite)
+        register_stanza_plugin(BaseMessage, MediatedInvite)
 
     @property
-    def jid_resource(self):
-        return self.conf["server"]["jid"].split("/")[-1]
+    def jid(self):
+        return JID(self.conf["server"]["jid"])
 
     def run(self):
         if self.conf["server"].has_key("hostname"):
@@ -83,7 +91,7 @@ class Rodham(sleekxmpp.ClientXMPP):
             roomconf = {
                 "password": password,
                 "server": server,
-                "nick": self.jid_resource
+                "nick": self.jid.resource
             }
             self.conf["rooms"][room] = roomconf
         else:
@@ -103,23 +111,27 @@ class Rodham(sleekxmpp.ClientXMPP):
             pass
 
     def message_received(self, M):
+        M.__class__ = Message
         if M["type"] == "groupchat":
-            room = M.get_from().user
-            sender = M.get_from().resource
+            room = M.get_from().bare
+            nick = M.get_from().resource
+            senderjid = self.plugin["xep_0045"].rooms[room][nick]["jid"]
+            if senderjid.domain != self.jid.domain:
+                sender = senderjid.bare
+            else:
+                sender = senderjid.user
         else:
-            sender = M.get_from().user
+            if senderjid.domain != self.jid.domain:
+                sender = M.get_from().bare
+            else:
+                sender = M.get_from().user
+        M.sender = sender
         if self.conf["server"].has_key("whitelist") and sender not in self.conf["server"]["whitelist"]:
             return
         if self.conf["server"].has_key("blacklist") and sender in self.conf["server"]["blacklist"]:
             return
 
-        # hardcoded for security?
-        if M["body"] == "!reload" and sender in ("mcmaster", "mcbastard", "billford", "dru"):
-            self._plugin_manager.reload()
-            M.reply("Reload complete").send()
-            return
-
-        if M["type"] == "groupchat" and self.conf["rooms"][room].get("monitor_only", False):
+        if M["type"] == "groupchat" and self.conf["rooms"][M.get_from().user].get("monitor_only", False):
             return
 
         method = "proc"

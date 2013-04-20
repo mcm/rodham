@@ -2,7 +2,6 @@ from importlib import import_module
 
 from .. import signals
 
-import copy
 import inspect
 
 
@@ -51,10 +50,7 @@ class PluginManager(object):
         self.collect_plugins()
 
     def iter_plugins(self, M, method="proc"):
-        if M["type"] == "groupchat":
-            sender = M.get_from().resource
-        else:
-            sender = M.get_from().user
+        sender = M.sender
         for plugin in self.plugins.keys():
             (p, conf) = self.plugins[plugin]
             if getattr(p, "disabled", False):
@@ -66,7 +62,7 @@ class PluginManager(object):
             f = getattr(p, method, None)
             if callable(f):
                 try:
-                    f(copy.copy(M))
+                    f(M)
                 except signals.ReloadSignal:
                     raise signals.ReloadSignal()
                 except:
@@ -80,7 +76,7 @@ class PluginManager(object):
             f = getattr(p, method, None)
             if callable(f):
                 try:
-                    f(copy.copy(M))
+                    f(M)
                 except signals.ReloadSignal:
                     raise signals.ReloadSignal()
                 except:

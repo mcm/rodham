@@ -13,12 +13,7 @@ class RtPlugin(object):
         self.admins = conf.get("admin_users", [])
 
     def proc(self, M):
-        if M["type"] == "groupchat":
-            sender = M.get_from().resource
-        else:
-            sender = M.get_from().user
-        if sender == "mcbastard":
-            sender = "mcmaster"
+        sender = M.sender
 
         def steal_ticket(ticket):
             payload = { "content": "Action: Steal" }

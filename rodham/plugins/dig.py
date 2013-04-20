@@ -30,7 +30,8 @@ class DigPlugin(object):
                         answers = None
 
                     if answers:
-                        M.reply(answers[0].to_text()).send()
+                        for answer in answers:
+                            M.reply(answer.to_text()).send()
 
     def help(self, M):
         M.reply("dig @nameserver querytype hostname").send()

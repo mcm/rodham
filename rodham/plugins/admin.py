@@ -13,10 +13,8 @@ class AdminPlugin(object):
         if not m:
             return
 
-        if M["type"] == "groupchat":
-            sender = M.get_from().resource
-        else:
-            sender = M.get_from().user
+        sender = M.sender
+        print sender
 
         if sender not in self.admins:
             return
@@ -46,13 +44,21 @@ class AdminPlugin(object):
                     return
                 self.bot.leave_room(room, server)
         elif cmd == "kick":
-            M.reply("Not implemented").send()
+            m = re.match("!admin kick (\S+)$", M["body"], flags=re.I)
+            if not m:
+                return
+
+            nick = self.bot.conf["rooms"][M.get_from().user]["nick"]
+
+            room = "%s@%s" % (M.get_from().user, M.get_from().domain)
+            ifrom = self.bot.conf["server"]["jid"]
+            self.bot.plugin["xep_0045"].setAffiliation(room, nick=m.groups()[0], affiliation="none", ifrom=ifrom)
+            #M.reply("Not implemented").send()
         elif cmd == "showplugins":
-            import copy
             for plugin in self.bot._plugin_manager.plugins.keys():
                 disabled = getattr(self.bot._plugin_manager.plugins[plugin][0], "disabled", False)
                 status = "disabled" if disabled else "enabled"
-                copy.copy(M).reply("%s (%s)" % (plugin, status)).send()
+                M.reply("%s (%s)" % (plugin, status)).send()
         elif cmd == "enable":
             m = re.match("!admin enable (\S+)$", M["body"], flags=re.I)
             if not m:

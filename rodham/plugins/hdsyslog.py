@@ -1,4 +1,3 @@
-import copy
 import re
 import xmlrpclib
 
@@ -35,4 +34,4 @@ class HdsyslogPlugin(object):
                     M.reply("Success").send()
         elif cmd == "list":
             for msg in self.hdsyslog.list(fe):
-                copy.copy(M).reply('%5d: %s' % (msg['queueid'], msg['raw'])).send()
+                M.reply('%5d: %s' % (msg['queueid'], msg['raw'])).send()
