@@ -46,16 +46,6 @@ class SwearJarPlugin(object):
     def update_words(self):
         self.swear_words = CostSortedDict([(s.word,s.cost) for s in SwearWord.select()])
 
-    def get_nick(self, name, room):
-        if room is None:
-            return name
-        jid = "%s@%s" % (name, self.bot.jid.domain)
-        muc = self.bot.plugin["xep_0045"]
-        for nick in muc.getRoster(room):
-            if muc.rooms[room][nick]["jid"].bare == jid:
-                return nick
-        return name
-
     def proc(self, M):
         sender = M.sender
         if M["type"] == "groupchat":
@@ -124,7 +114,7 @@ class SwearJarPlugin(object):
                     if not leaders.has_key(swear.who):
                         leaders[swear.who] = 0.0
                     leaders[swear.who] += swear.cost
-                leaders = [ (self.get_nick(k, room),v) for (k,v) in leaders.sorteditems() ]
+                leaders = [ (self.bot.get_nick(k, room),v) for (k,v) in leaders.sorteditems() ]
                 M.reply("\n".join([ "{}: ${:,.2f}".format(k,v) for (k,v) in leaders ])).send()
             else:
                 M.reply("Not yet implemented...").send()

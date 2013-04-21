@@ -192,6 +192,22 @@ class Rodham(sleekxmpp.ClientXMPP):
     def get_plugin(self, plugin_name):
         return self._plugin_manager.plugins[plugin_name][0]
 
+    def get_nick(self, name, room):
+        if room is None:
+            return name
+        jid = "%s@%s" % (name, self.jid.domain)
+        muc = self.plugin["xep_0045"]
+        for nick in muc.getRoster(room):
+            if muc.rooms[room][nick]["jid"].bare == jid:
+                return nick
+        return name
+
+    def get_jid(self, nick, room):
+        try:
+            return self.plugin["xep_0045"].rooms[room][nick]["jid"]
+        except KeyError:
+            return None
+
     def kick(self, room, nick, reason=None):
         print room
         if not room in self.conf["rooms"]:
