@@ -86,7 +86,14 @@ class PlusOnePlugin(object):
                 return
             lastsender = lastjid.user
         else:
-            (lastsender, lastnick) = self.last
+            if self.last is not None:
+                (lastsender, lastnick) = self.last
+            else:
+                return
+
+        if sender == lastsender:
+            M.reply("%s: you cannot assign yourself points" % nick).send()
+            return
 
         pointsgiven = sum([pa.points for pa in PointAssignment.select().where(PointAssignment.giver == sender)])
         if (points + pointsgiven) > self.max_points:
