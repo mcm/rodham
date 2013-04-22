@@ -136,7 +136,10 @@ class Rodham(sleekxmpp.ClientXMPP):
             room = M["mucroom"]
             nick = M["mucnick"]
             if nick == "":
-                nick = self.conf["rooms"][room]["nick"]
+                try:
+                    nick = self.conf["rooms"][room]["nick"]
+                except KeyError:
+                    return
                 senderjid = self.jid
             else:
                 senderjid = self.plugin["xep_0045"].rooms[room][nick]["jid"]
