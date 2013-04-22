@@ -23,3 +23,6 @@ class RoulettePlugin(object):
         if shot == barrel:
             # Kick the sender
             self.bot.kick(room, nick, reason="You lose!")
+
+    def help(self, M):
+        M.reply("How about a nice game of Russian Roulette?").send()
