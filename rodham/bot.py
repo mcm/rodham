@@ -1,3 +1,4 @@
+from . import config
 from . import plugins
 from . import signals
 
@@ -40,6 +41,21 @@ class Rodham(sleekxmpp.ClientXMPP):
         #self.register_plugin('xep_0249')
 
         register_stanza_plugin(BaseMessage, MediatedInvite)
+
+    def reload_config(self):
+        conffile = self.conf["conffile"]
+        oldconf, self.conf = self.conf, config.get_config(conffile=conffile)
+        self._plugin_manager.conf = self.conf["plugins"]
+        for (room,roomconf) in self.conf["rooms"].items():
+            if room not in oldconf["rooms"]:
+                # Added a room, join it
+                if not roomconf.has_key("password"):
+                    roomconf["password"] = ""
+                self.join_room(room, roomconf["server"], roomconf["password"])
+        for (room, roomconf) in oldconf["rooms"].items():
+            if room not in self.conf["rooms"]:
+                # Removed a room, leave it
+                self.leave_room(room, roomconf["server"], roomconf["nick"])
 
     @property
     def jid(self):
@@ -102,21 +118,28 @@ class Rodham(sleekxmpp.ClientXMPP):
         self.add_event_handler("muc::%s::got_online" % jid, self.muc_online)
         self.add_event_handler("muc::%s::got_offline" % jid, self.muc_offline)
 
-    def leave_room(self, room, server):
+    def leave_room(self, room, server, nick=None):
         jid = "%s@%s" % (room, server)
         self.add_event_handler("muc::%s::got_offline" % jid, self.muc_offline)
         self.add_event_handler("muc::%s::got_online" % jid, self.muc_online)
+        if nick is None:
+            nick = self.conf["rooms"][room]["nick"]
         try:
-            self.plugin["xep_0045"].leaveMUC(jid, self.conf["rooms"][room]["nick"])
+            self.plugin["xep_0045"].leaveMUC(jid, nick)
         except ValueError:
             pass
 
     def message_received(self, M):
         M.__class__ = Message
+        M.proc = self.message_received
         if M["type"] == "groupchat":
-            room = M.get_from().bare
-            nick = M.get_from().resource
-            senderjid = self.plugin["xep_0045"].rooms[room][nick]["jid"]
+            room = M["mucroom"]
+            nick = M["mucnick"]
+            if nick == "":
+                nick = self.conf["rooms"][room]["nick"]
+                senderjid = self.jid
+            else:
+                senderjid = self.plugin["xep_0045"].rooms[room][nick]["jid"]
             if senderjid.domain != self.jid.domain:
                 sender = senderjid.bare
             else:

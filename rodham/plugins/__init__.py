@@ -47,6 +47,7 @@ class PluginManager(object):
             shutdown = getattr(self.plugins[plugin][0], "shutdown", False)
             if callable(shutdown):
                 shutdown()
+        self.bot.reload_config()
         self.collect_plugins()
 
     def iter_plugins(self, M, method="proc"):
