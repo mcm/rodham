@@ -8,6 +8,7 @@ class RtPlugin(object):
             "pass": conf["password"],
         }
         self.urlroot = conf["url"]
+        self.linkroot = conf.get("linkroot", self.urlroot)
         self.session = requests.Session()
         self.session.post(self.urlroot, data=self.auth_payload, verify=False)
         self.admins = conf.get("admin_users", [])
@@ -52,7 +53,7 @@ class RtPlugin(object):
                     info[key.lower()] = value.strip()
                     lastkey = key.lower()
             info["id"] = info["id"].split("/")[1]
-            info["link"] = "https://rt.hurricanedefense.com/Ticket/Display.html?id=%s" % info["id"]
+            info["link"] = "%s/Ticket/Display.html?id=%s" % (self.linkroot, info["id"])
             return info
 
         m = re.match("!rt (take|give \w+|open|close|resolve|admin_users) hd\s*#\s*(\d+)", M["body"], flags=re.I)
