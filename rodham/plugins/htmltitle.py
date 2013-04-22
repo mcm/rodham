@@ -1,11 +1,14 @@
 import mechanize
 import re
 
-def get_title(url):
+def get_title(url, return_url=False):
     br = mechanize.Browser()
     br.set_handle_refresh(False)
     br.open(url, timeout=5)
-    return br.title()
+    if return_url:
+        return (br.geturl(), br.title())
+    else:
+        return br.title()
 
 class HtmlTitlePlugin(object):
     def proc(self, M):
@@ -14,7 +17,9 @@ class HtmlTitlePlugin(object):
             return
         url = m.groups()[0]
 
-        #try:
-        M.reply("%s || %s" % (url,get_title(url))).send()
-        #except:
-        #    pass
+        try:
+            (realurl, title) = get_title(url, True)
+        except:
+            return
+
+        M.reply("%s || %s" % (realurl, title)).send()
