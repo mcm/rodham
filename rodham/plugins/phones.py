@@ -68,6 +68,7 @@ class PhonePlugin(object):
             channels = dict()
             actionid = str(uuid.uuid4())
             finished = threading.Event()
+            phones = list()
             def handle_response(event, manager, *args, **kwargs):
                 if event.get_header("ActionID") != actionid:
                     return
@@ -75,9 +76,11 @@ class PhonePlugin(object):
                     return
                 name = self.bot.get_plugin("ldap").get_user_by_extension(event.get_header("CallerIDnum"))
                 if name is None:
-                    M.reply(event.get_header("CallerIDnum")).send()
+                    #M.reply(event.get_header("CallerIDnum")).send()
+                    phones.append(event.get_header("CallerIDnum"))
                 else:
-                    M.reply(name).send()
+                    #M.reply(name).send()
+                    phones.append(name)
             def handle_complete(event, manager, *args, **kwargs):
                 finished.set()
             self.ami.register_event("CoreShowChannel", handle_response)
@@ -85,6 +88,8 @@ class PhonePlugin(object):
             cdict = {"Action": "CoreShowChannels", "ActionID": actionid}
             self.ami.send_action(cdict)
             finished.wait(15)
+            if len(phones) > 0:
+                M.reply("On the phone: %s" % " ".join(phones)).send()
             self.ami.unregister_event("CoreShowChannelsComplete", handle_complete)
             self.ami.unregister_event("CoreShowChannel", handle_response)
         elif cmd == "call":
