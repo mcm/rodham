@@ -90,6 +90,8 @@ class PhonePlugin(object):
             finished.wait(15)
             if len(phones) > 0:
                 M.reply("On the phone: %s" % " ".join(phones)).send()
+            else:
+                M.reply("All clear").send()
             self.ami.unregister_event("CoreShowChannelsComplete", handle_complete)
             self.ami.unregister_event("CoreShowChannel", handle_response)
         elif cmd == "call":
