@@ -3,6 +3,7 @@ import random
 class RoulettePlugin(object):
     def __init__(self, *args, **kwargs):
         self.bot = kwargs["bot"]
+        self.barrel = random.randint(1, 6)
 
     def proc(self, M):
         if M["type"] != "groupchat":
@@ -14,15 +15,14 @@ class RoulettePlugin(object):
         room = M["mucroom"].split("@")[0]
         nick = M["mucnick"]
 
-        # Load the revolver
-        barrel = random.randint(1, 6)
-
-        # Fire!
         shot = random.randint(1, 6)
 
-        if shot == barrel:
+        if shot == self.barrel:
             # Kick the sender
             self.bot.kick(room, nick, reason="You lose!")
+            self.barrel = random.randint(1, 6)
+        else:
+            M.reply("*click*").send()
 
     def help(self, M):
         M.reply("How about a nice game of Russian Roulette?").send()
