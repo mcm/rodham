@@ -88,7 +88,7 @@ class LdapPlugin(object):
                 if self.filter:
                     filter_ = "(&%s%s)" % (self.filter, filter_)
 
-                results = self._ldap.search_s(self.ldap_base, ldap.SCOPE_SUBTREE, filter_, ('cn', returnkey,))
+                results = self._ldap.search_s(self.ldap_base, ldap.SCOPE_SUBTREE, filter_, ("cn", "uid", "ou", returnkey,))
 
                 if len(results) == 0:
                     M.reply("That request does not compute - do better").send()
@@ -103,5 +103,13 @@ class LdapPlugin(object):
                         response = results[0][1][returnkey][0]
                     except KeyError:
                         response = ""
+                    if returnkey == "mobile" and results[0][1]["ou"][0] == "hurricane":
+                        uid = results[0][1]["uid"][0]
+                        try:
+                            extn = int(self.get_extension_by_user(uid)) + 400
+                        except:
+                            pass
+                        else:
+                            response = "%s || Or dial x%s" % (response, extn)
                     M.reply("%s || %s" % (cn, response)).send()
                 return
