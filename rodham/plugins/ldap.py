@@ -5,12 +5,13 @@ import re
 
 class LdapPlugin(object):
     regexes = [
+        re.compile("^!ldap ([a-zA-Z '-]{3,})$", flags=re.I),
         re.compile("^!ldap (name) (\d\d\d-\d\d\d-\d\d\d\d)$", flags=re.I),
         re.compile("^!ldap (mobile) ([a-zA-Z '-]{3,})$", flags=re.I),
         re.compile("^!ldap (email) ([a-zA-Z '-]{3,})$", flags=re.I),
         re.compile("^!ldap (home) ([a-zA-Z '-]{3,})$", flags=re.I),
         re.compile("^!ldap (office) ([a-zA-Z '-]{3,})$", flags=re.I),
-        re.compile("(\d\d\d-\d\d\d-\d\d\d\d)", flags=re.I),
+        re.compile("(?P<phone_number>\d\d\d-\d\d\d-\d\d\d\d)", flags=re.I),
     ]
 
     def __init__(self, conf, *args, **kwargs):
@@ -67,7 +68,7 @@ class LdapPlugin(object):
             if m:
                 groups = list(m.groups())
 
-                if len(groups) == 1 or groups[0] == "name":
+                if groups[0] == "name" or "phone_number" in m.groupdict():
                     number = groups[0]
                     if groups[0] == "name":
                         number = groups[1]
@@ -75,6 +76,10 @@ class LdapPlugin(object):
                     numfilter = "*%s*%s*%s" % p.groups()
                     filter_ = "(|(telephoneNumber=%s)(mobile=%s)(homePhone=%s))" % (numfilter, numfilter, numfilter)
                     returnkey = "cn"
+                elif len(groups) == 1:
+                    # Return all info
+                    returnkey = None
+                    filter_ = "(cn=*%s*)" % groups[0]
                 else:
                     if groups[1] == "joe's dad":
                         groups[1] = "Len Gedeon"
@@ -87,16 +92,31 @@ class LdapPlugin(object):
 
                 if self.filter:
                     filter_ = "(&%s%s)" % (self.filter, filter_)
+                    
+                if returnkey is None:
+                    attrs = ("cn", "uid", "ou", "mobile", "mail", "telephoneNumber", "homePhone")
+                else:
+                    attrs = ("cn", "uid", "ou", returnkey)
 
-                results = self._ldap.search_s(self.ldap_base, ldap.SCOPE_SUBTREE, filter_, ("cn", "uid", "ou", returnkey,))
+                results = self._ldap.search_s(self.ldap_base, ldap.SCOPE_SUBTREE, filter_, attrs)
 
                 if len(results) == 0:
                     M.reply("That request does not compute - do better").send()
                     return
 
-                cn = results[0][1]["cn"][0]
+                result = results[0][1]
+                cn = result["cn"][0]
                 
-                if returnkey == "cn":
+                if returnkey is None:
+                    keys = (
+                        cn,
+                        result["telephoneNumber"][0] if "telephoneNumber" in result else "",
+                        result["mobile"][0] if "mobile" in result else "",
+                        result["homePhone"][0] if "homePhone" in result else "",
+                        result["mail"][0] if "mail" in result else "",
+                    )
+                    M.reply("%s || Office: %s || Mobile: %s || Home: %s || Email: %s" % keys).send()
+                elif returnkey == "cn":
                     M.reply("%s || %s" % (number, cn)).send()
                 else:
                     try:
