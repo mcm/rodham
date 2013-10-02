@@ -5,12 +5,12 @@ import re
 
 class LdapPlugin(object):
     regexes = [
-        re.compile("^!ldap ([a-zA-Z '-]{3,})$", flags=re.I),
         re.compile("^!ldap (name) (\d\d\d-\d\d\d-\d\d\d\d)$", flags=re.I),
         re.compile("^!ldap (mobile) ([a-zA-Z '-]{3,})$", flags=re.I),
         re.compile("^!ldap (email) ([a-zA-Z '-]{3,})$", flags=re.I),
         re.compile("^!ldap (home) ([a-zA-Z '-]{3,})$", flags=re.I),
         re.compile("^!ldap (office) ([a-zA-Z '-]{3,})$", flags=re.I),
+        re.compile("^!ldap ([a-zA-Z '-]{3,})$", flags=re.I),
         re.compile("(?P<phone_number>\d\d\d-\d\d\d-\d\d\d\d)", flags=re.I),
     ]
 
