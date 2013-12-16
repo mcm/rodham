@@ -148,7 +148,7 @@ class Rodham(sleekxmpp.ClientXMPP):
             else:
                 sender = senderjid.user
         else:
-            if senderjid.domain != self.jid.domain:
+            if M["from"].domain != self.jid.domain:
                 sender = M.get_from().bare
             else:
                 sender = M.get_from().user
