@@ -26,14 +26,17 @@ class RulesPlugin(object):
         if base is None or target is None:
             return
 
-        url = "http://openexchangerates.org/api/latest.json?app_id=747d3ac6105f45c09c4d45f6829be195&base={}".format(base)
+        url = "http://openexchangerates.org/api/latest.json?app_id=747d3ac6105f45c09c4d45f6829be195"
         rates = requests.get(url).json()["rates"]
 
         if target not in rates:
             response = "Target currency not found"
         else:
             amount = 1.0 if amount == None else float(amount)
-            exchange = rates[target] * amount
+            if base == "USD":
+                exchange = rates[target] * amount
+            else:
+                exchange = amount * (1.0 / rates[base]) * rates[target]
             response = "{}{} = {}{}".format(amount, base, exchange, target)
 
         M.reply(response).send()
