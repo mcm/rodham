@@ -11,12 +11,17 @@ class RulesPlugin(object):
         if not m:
             return
 
+        amount = None
         base = None
         target = None
 
         m = re.match("^!exchange ([A-Z]+) to ([A-Z]+)", M["body"], flags=re.I)
         if m:
             base,target = m.groups()
+
+        m = re.match("^!exchange ([0-9.]+)([A-Z]+) to ([A-Z]+)", M["body"], flags=re.I)
+        if m:
+            amount,base,target = m.groups()
 
         if base is None or target is None:
             return
@@ -27,6 +32,8 @@ class RulesPlugin(object):
         if target not in rates:
             response = "Target currency not found"
         else:
-            response = "1{} = {}{}".format(base, rates[target], target)
+            amount = 1.0 if amount == None else float(amount)
+            exchange = rates[target] * amount
+            response = "{}{} = {}{}".format(amount, base, exchange, target)
 
         M.reply(response).send()
