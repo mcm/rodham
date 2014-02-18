@@ -100,8 +100,31 @@ class LdapPlugin(object):
 
                 results = self._ldap.search_s(self.ldap_base, ldap.SCOPE_SUBTREE, filter_, attrs)
 
+                returnAll = False
                 if len(results) == 0:
-                    M.reply("That request does not compute - do better").send()
+                    if returnkey == None:
+                        # Try again with ou
+                        filter_ = "(&(objectClass=person)(ou=*%s*))" % groups[0]
+                        results = self._ldap.search_s(self.ldap_base, ldap.SCOPE_SUBTREE, filter_, attrs)
+
+                    if len(results) == 0:
+                        M.reply("That request does not compute - do better").send()
+                        return
+                    else:
+                        returnAll = True
+
+                if returnAll:
+                    results = map(lambda r: r[1], results)
+                    for result in results:
+                        cn = result["cn"][0]
+                        keys = (
+                            cn,
+                            result["telephoneNumber"][0] if "telephoneNumber" in result else "",
+                            result["mobile"][0] if "mobile" in result else "",
+                            result["homePhone"][0] if "homePhone" in result else "",
+                            result["mail"][0] if "mail" in result else "",
+                        )
+                        M.reply("%s || Office: %s || Mobile: %s || Home: %s || Email: %s" % keys).send()
                     return
 
                 result = results[0][1]
