@@ -23,6 +23,11 @@ def NagzillaProtocolFactory(bot):
             except ValueError:
                 color = None
 
+            if color is None:
+                msg = msg.replace("<br>", "\n")
+
+            msg = msg.strip()
+
             if style.lower() == "room":
                 # MUC
                 M = self.bot.make_muc_message(mto=target, mbody=msg)
